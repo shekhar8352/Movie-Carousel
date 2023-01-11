@@ -6,8 +6,8 @@ export default class Navbar extends Component {
       <div>
         <nav className="navbar navbar-expand-lg navbar-light bg-light">
           <div className="container-fluid">
-            <a className="navbar-brand" href="#">
-              Navbar
+            <a className="navbar-brand" href="/">
+              MOVIE-CAROUSEL
             </a>
             <button
               className="navbar-toggler"
@@ -23,7 +23,7 @@ export default class Navbar extends Component {
             <div className="collapse navbar-collapse" id="navbarNav">
               <ul className="navbar-nav">
                 <li className="nav-item">
-                  <a className="nav-link active" aria-current="page" href="#">
+                  <a className="nav-link active" aria-current="page" href="/favourites">
                     Favourites
                   </a>
                 </li>

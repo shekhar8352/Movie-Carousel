@@ -1,40 +1,37 @@
 import React, { Component } from "react";
-import axios from "axios";
+import { movies } from "./AddMovies";
 
 export default class Banner extends Component {
-  constructor()
-  {
-    super();
-    this.state = {
-      movies:[],
-    }
-  }
-
-  async componentDidMount() {
-    const res = await axios.get(
-      "https://api.themoviedb.org/3/trending/all/day?api_key=d8f2eb6b526f4cf3546be62aebe80c59"
-    );
-    let data = res.data;
-    this.setState({
-      movies: [...data.results],
-    });
-  }
-
   render() {
+    let x = Math.floor(Math.random() * 20);
+    let movie = movies.results[x];
+
     return (
-      <div>
-        <div
-          id="carouselExampleSlidesOnly"
-          class="carousel slide"
-          data-bs-ride="carousel"
-        >
-          <div class="carousel-inner">
-            <div class="carousel-item active">
-              <img src="" class="d-block w-100" alt="..." />
+
+      <>
+      {
+        movie === "" ?
+        <div>
+          <div className="d-flex justify-content-center">
+            <div className="spinner-border" role="status">
+              <span className="visually-hidden">Loading...</span>
             </div>
           </div>
         </div>
-      </div>
+        :
+        <div>
+          <div className="card banner-card">
+            <img src={`https://image.tmdb.org/t/p/original${movie.backdrop_path}`} alt={movie.title} className="banner-img" />
+            <div className="card-body">
+              <h3 className="card-title banner-title">{movie.title}</h3>
+              <p className="card-text banner-text">
+                {movie.overview}
+              </p>
+            </div>
+          </div>
+        </div>
+      }
+      </>
     );
   }
 }
