@@ -3,32 +3,37 @@ import Navbar from "./Components/Navbar";
 import Banner from "./Components/Banner";
 import Movies from "./Components/Movies";
 import Favourite from "./Components/favourite";
-import { BrowserRouter as Router, Route } from "react-router-dom";
-import { Routes } from "react-router-dom";
+import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 
 function App() {
   return (
     <Router>
-      <Navbar />
-      <Routes>
-        <Route path="/" exact element={<Home/>} />
-        <Route path="/favourites" element={<Favourite/>} />
-      </Routes>
-      {/* <Banner/> */}
-      {/* <Movies/> name="udai" */}
-      {/* <Favourite/> */}
+      <div className="app-shell">
+        <a className="skip-link" href="#main">
+          Skip to content
+        </a>
+        <Navbar />
+        <main id="main" className="app-main">
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/favourites" element={<Favourite />} />
+          </Routes>
+        </main>
+        <footer className="site-footer">
+          Movie Carousel · Browse trending titles and keep a personal watchlist.
+        </footer>
+      </div>
     </Router>
   );
 }
 
 export default App;
 
-
-function Home(props) {
+function Home() {
   return (
     <>
-      <Banner {...props} />
-      <Movies {...props} />
+      <Banner />
+      <Movies />
     </>
   );
 }

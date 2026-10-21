@@ -1,75 +1,80 @@
 import React, { Component } from "react";
 import axios from "axios";
+import {
+  FAVOURITES_EVENT,
+  formatRating,
+  getFavourites,
+  getMovieTitle,
+  getMovieYear,
+  getPosterUrl,
+  isFavourite,
+  toggleFavourite,
+} from "../movieUtils";
+
+const TMDB_POPULAR =
+  "https://api.themoviedb.org/3/movie/popular?api_key=5540e483a20e0b20354dabc2d66a31c9&language=en-US";
 
 export default class Movies extends Component {
   constructor() {
     super();
     this.state = {
-      hover: "",
       parr: [1],
       currPage: 1,
       movies: [],
-      favourites: [],
+      favourites: getFavourites().map((movie) => movie.id),
+      loading: true,
+      error: "",
     };
   }
-  loadMoreMovies = async () => {
-    let newPage = this.state.currPage + 1;
-    const res = await axios.get(
-      `https://api.themoviedb.org/3/movie/popular?api_key=5540e483a20e0b20354dabc2d66a31c9&language=en-US&page=${newPage}`
-    );
-    let data = res.data;
-    // console.log(data);
+
+  syncFavourites = () => {
     this.setState({
-      movies: [...this.state.movies, ...data.results],
-      currPage: newPage,
+      favourites: getFavourites().map((movie) => movie.id),
     });
   };
+
   async componentDidMount() {
-    //Side effects
-    const res = await axios.get(
-      `https://api.themoviedb.org/3/movie/popular?api_key=5540e483a20e0b20354dabc2d66a31c9&language=en-US&page=${this.state.currPage}`
-    );
-    let data = res.data;
-    // console.log(data);
-    this.setState({
-      movies: [...data.results],
-    });
-    let callbackfn = (entries) => {
-      if (entries[0].isIntersecting) {
-        this.loadMoreMovies();
-      }
-    };
-    let loader = document.querySelector(".infinite-loader");
-    let observer = new IntersectionObserver(callbackfn, { threshold: 1.0 });
-    observer.observe(loader);
+    window.addEventListener(FAVOURITES_EVENT, this.syncFavourites);
+    await this.changeMovies();
   }
+
+  componentWillUnmount() {
+    window.removeEventListener(FAVOURITES_EVENT, this.syncFavourites);
+  }
+
   changeMovies = async () => {
-    console.log("changemovies called");
-    console.log(this.state.currPage);
-    const res = await axios.get(
-      `https://api.themoviedb.org/3/movie/popular?api_key=5540e483a20e0b20354dabc2d66a31c9&language=en-US&page=${this.state.currPage}`
-    );
-    let data = res.data;
-    // console.log(data);
-    this.setState({
-      movies: [...data.results],
-    });
+    this.setState({ loading: true, error: "" });
+    try {
+      const res = await axios.get(`${TMDB_POPULAR}&page=${this.state.currPage}`);
+      this.setState({
+        movies: res.data.results || [],
+        loading: false,
+      });
+    } catch (err) {
+      this.setState({
+        loading: false,
+        error: "Could not load trending movies. Please try again.",
+      });
+    }
   };
+
   handleRight = () => {
-    let temparr = [];
-    for (let i = 1; i <= this.state.parr.length + 1; i++) {
+    const nextPage = this.state.currPage + 1;
+    const temparr = [];
+    for (let i = 1; i <= Math.max(this.state.parr.length, nextPage); i++) {
       temparr.push(i);
     }
     this.setState(
       {
-        parr: [...temparr],
-        currPage: this.state.currPage + 1,
+        parr: temparr,
+        currPage: nextPage,
       },
       this.changeMovies
     );
   };
+
   handleLeft = () => {
-    if (this.state.currPage != 1) {
+    if (this.state.currPage !== 1) {
       this.setState(
         {
           currPage: this.state.currPage - 1,
@@ -78,9 +83,9 @@ export default class Movies extends Component {
       );
     }
   };
+
   handleClick = (value) => {
-    if (value != this.state.currPage) {
-      console.log("i am called");
+    if (value !== this.state.currPage) {
       this.setState(
         {
           currPage: value,
@@ -89,99 +94,113 @@ export default class Movies extends Component {
       );
     }
   };
+
   handleFavourites = (movie) => {
-    let oldData = JSON.parse(localStorage.getItem("movies-app") || "[]");
-    if (this.state.favourites.includes(movie.id)) {
-      oldData = oldData.filter((m) => m.id != movie.id);
-    } else {
-      oldData.push(movie);
-    }
-    localStorage.setItem("movies-app", JSON.stringify(oldData));
-    console.log(oldData);
-    this.handleFavouritesState();
-  };
-  handleFavouritesState = () => {
-    let oldData = JSON.parse(localStorage.getItem("movies-app") || "[]");
-    let temp = oldData.map((movie) => movie.id);
+    toggleFavourite(movie);
     this.setState({
-      favourites: [...temp],
+      favourites: getFavourites().map((item) => item.id),
     });
   };
+
   render() {
-    // let movie = movies.results
+    const { movies, loading, error, currPage, parr, favourites } = this.state;
+
     return (
-      <>
-        {this.state.movies.length === 0 ? (
-          <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">Loading...</span>
+      <section className="section" id="trending">
+        <div className="section-header">
+          <div>
+            <h2>Trending movies</h2>
+            <p>Popular titles this week. Save anything you want to watch later.</p>
+          </div>
+        </div>
+
+        {error && <div className="error-banner">{error}</div>}
+
+        {loading && movies.length === 0 ? (
+          <div className="skeleton-grid" aria-hidden="true">
+            {Array.from({ length: 10 }).map((_, index) => (
+              <div className="skeleton-card" key={index} />
+            ))}
+          </div>
+        ) : movies.length === 0 ? (
+          <div className="empty-state">
+            <h3>No movies to show</h3>
+            <p>Trending titles could not be loaded right now.</p>
           </div>
         ) : (
-          <div>
-            <h3 className="text-center">
-              <strong>Trending</strong>
-            </h3>
-            <div className="movies-list">
-              {this.state.movies.map((movieObj) => (
-                <div
-                  className="card movies-card"
-                  onMouseEnter={() => this.setState({ hover: movieObj.id })}
-                  onMouseLeave={() => this.setState({ hover: "" })}
-                >
-                  <img
-                    src={`https://image.tmdb.org/t/p/original${movieObj.backdrop_path}`}
-                    alt={movieObj.title}
-                    className="card-img-top movies-img"
-                  />
-                  {/* <div className="card-body"> */}
-                  <h5 className="card-title movies-title">
-                    {movieObj.original_title}
-                  </h5>
-                  {/* <p class="card-text movies-text">{movieObj.overview}</p> */}
-                  <div
-                    className="button-wrapper"
-                    style={{
-                      display: "flex",
-                      width: "100%",
-                      justifyContent: "center",
-                    }}
-                  >
-                    {this.state.hover === movieObj.id && (
-                      <a
-                        className="btn btn-primary movies-button"
+          <>
+            <div className="movies-grid">
+              {movies.map((movieObj) => {
+                const title = getMovieTitle(movieObj);
+                const poster = getPosterUrl(movieObj);
+                const saved = favourites.includes(movieObj.id) || isFavourite(movieObj.id);
+
+                return (
+                  <article className="movie-card" key={movieObj.id}>
+                    <div className="poster-wrap">
+                      {poster ? (
+                        <img src={poster} alt={title} />
+                      ) : (
+                        <div className="poster-fallback">{title.charAt(0)}</div>
+                      )}
+                      <span className="rating-badge">★ {formatRating(movieObj.vote_average)}</span>
+                      <button
+                        className={`fav-toggle${saved ? " active" : ""}`}
+                        type="button"
+                        aria-label={saved ? `Remove ${title} from favourites` : `Add ${title} to favourites`}
                         onClick={() => this.handleFavourites(movieObj)}
                       >
-                        {this.state.favourites.includes(movieObj.id)
-                          ? "Remove from favourites"
-                          : "Add to favourites"}
-                      </a>
-                    )}
-                  </div>
-                  {/* </div> */}
-                </div>
-              ))}
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill={saved ? "currentColor" : "none"}>
+                          <path
+                            d="M12 20s-7-4.4-9.5-8.2C.6 8.7 2.2 5 6 5c2 0 3.3 1.1 4 2.1C10.7 6.1 12 5 14 5c3.8 0 5.4 3.7 3.5 6.8C19 15.6 12 20 12 20z"
+                            stroke="currentColor"
+                            strokeWidth="1.8"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+                    <div className="movie-card-body">
+                      <h3>{title}</h3>
+                      <p>{getMovieYear(movieObj) || "Release TBA"}</p>
+                    </div>
+                  </article>
+                );
+              })}
             </div>
-            {/* <div
-              className="infinite-loader"
-              style={{ display: "flex", justifyContent: "center" }}
-            >
-              <h2>Load More Movies .........................</h2>
-            </div> */}
-            <div style={{display:'flex',justifyContent:'center'}}>
-            <nav aria-label="Page navigation example">
-                            <ul class="pagination">
-                                <li class="page-item"><a class="page-link" onClick={this.handleLeft}>Previous</a></li>
-                                {
-                                    this.state.parr.map((value)=>(
-                                        <li class="page-item"><a class="page-link" onClick={()=>this.handleClick(value)}>{value}</a></li>
-                                    ))
-                                }
-                                <li class="page-item"><a class="page-link" onClick={this.handleRight}>Next</a></li>
-                            </ul>
-                        </nav>
-            </div>
-          </div>
+            <nav aria-label="Movie pages">
+              <ul className="pagination">
+                <li>
+                  <button
+                    className="page-btn"
+                    type="button"
+                    onClick={this.handleLeft}
+                    disabled={currPage === 1}
+                  >
+                    Previous
+                  </button>
+                </li>
+                {parr.map((value) => (
+                  <li key={value}>
+                    <button
+                      className={`page-btn${value === currPage ? " active" : ""}`}
+                      type="button"
+                      onClick={() => this.handleClick(value)}
+                      aria-current={value === currPage ? "page" : undefined}
+                    >
+                      {value}
+                    </button>
+                  </li>
+                ))}
+                <li>
+                  <button className="page-btn" type="button" onClick={this.handleRight}>
+                    Next
+                  </button>
+                </li>
+              </ul>
+            </nav>
+          </>
         )}
-      </>
+      </section>
     );
   }
 }
